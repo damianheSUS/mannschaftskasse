@@ -1,27 +1,22 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mannschaftskasse</title>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="styles.css">
-<title>Mannschaftskasse – Strafen</title>
 </head>
 <body>
-<header>
-  <img src="assets/logo_iceblue.png" alt="Logo">
-  <h1>Mannschaftskasse</h1>
-</header>
-
+<header><img src="assets/logo_iceblue.png" alt="Logo"><h1>Mannschaftskasse</h1></header>
 <nav id="tabs">
   <button data-tab="buchungen" class="active">Buchungen</button>
   <button data-tab="monate">Monate</button>
+  <button data-tab="aktiv">Aktivierungen</button>
   <button data-tab="spieler">Spieler</button>
   <button data-tab="katalog">Strafenkatalog</button>
-  <button data-tab="beitraege">Beiträge</button>
+  <button data-tab="gesamt">Gesamt</button>
   <button data-tab="settings">Einstellungen</button>
 </nav>
-
 <main>
   <!-- Buchungen -->
   <section id="tab-buchungen" class="card">
@@ -36,19 +31,16 @@
     <div><label>Notiz</label><input id="b_note" placeholder="optional"></div>
     <div class="actions" style="margin-top:12px;">
       <button class="primary" id="b_add">+ Hinzufügen</button>
-      <button class="ghost" id="b_export">Export CSV</button>
+      <button class="ghost" id="b_export_month">Export Monat (CSV)</button>
     </div>
   </section>
-
   <section class="card" id="b_stats">
-    <div class="stat"><div>Gesamt (gefiltert)</div><div class="total" id="b_total">0,00 €</div></div>
     <div class="row">
       <div><label>Spieler-Filter</label><select id="b_filter_player"><option value="">Alle</option></select></div>
       <div><label>Monat</label><select id="b_filter_month"><option value="">Alle</option></select></div>
     </div>
-    <table class="table" id="b_table"><thead>
-      <tr><th>Datum</th><th>Spieler</th><th>Strafe</th><th>Betrag</th><th>Notiz</th></tr>
-    </thead><tbody></tbody></table>
+    <table class="table" id="b_table"><thead><tr><th>Datum</th><th>Spieler</th><th>Strafe</th><th>Betrag</th><th>Notiz</th></tr></thead><tbody></tbody></table>
+    <div class="row"><div>Gesamt (gefiltert)</div><div class="total" id="b_total">0,00 €</div></div>
   </section>
 
   <!-- Monate -->
@@ -59,11 +51,23 @@
         <select id="m_include_fee"><option value="yes">Ja</option><option value="no">Nein</option></select>
       </div>
     </div>
-    <div class="stat" style="margin-top:8px;"><div>Summe Strafen</div><div class="total" id="m_sum_fines">0,00 €</div></div>
-    <div class="stat"><div>Summe Beiträge (optional)</div><div class="total" id="m_sum_fees">0,00 €</div></div>
-    <div class="stat"><div><strong>Gesamt</strong></div><div class="total" id="m_total">0,00 €</div></div>
+    <div class="row3" style="margin-top:8px;">
+      <div>Summe Strafen<br><span class="total" id="m_sum_fines">0,00 €</span></div>
+      <div>Summe Beiträge<br><span class="total" id="m_sum_fees">0,00 €</span></div>
+      <div>Gesamt<br><span class="total" id="m_total">0,00 €</span></div>
+    </div>
     <h3>Pro Spieler</h3>
     <table class="table" id="m_table"><thead><tr><th>Spieler</th><th>Strafen</th><th>Beiträge</th><th>Gesamt</th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <!-- Aktivierungen -->
+  <section id="tab-aktiv" class="card hide">
+    <div class="row">
+      <div><label>Monat wählen</label><select id="a_month"></select></div>
+      <div><label>&nbsp;</label><button class="ghost" id="a_export">Export Aktiv-Liste (CSV)</button></div>
+    </div>
+    <table class="table" id="a_table"><thead><tr><th>Aktiv</th><th>Spieler</th></tr></thead><tbody></tbody></table>
+    <p class="small">Beim ersten Aktiv-Schalten eines Spielers wird automatisch ein einmaliger <strong>Startbeitrag 10€</strong> als Strafe im gewählten Monat verbucht.</p>
   </section>
 
   <!-- Spieler -->
@@ -89,7 +93,7 @@
           <option value="pro Stück">pro Stück</option>
         </select>
       </div>
-      <div><label>Hinweis/Kontext</label><input id="k_note" placeholder="optional (Spiel/Training)"></div>
+      <div><label>Hinweis</label><input id="k_note" placeholder="optional (Spiel/Training)"></div>
     </div>
     <div class="actions" style="margin-top:12px;">
       <button class="primary" id="k_add">Speichern / hinzufügen</button>
@@ -98,37 +102,27 @@
     <table class="table" id="k_table"><thead><tr><th>Strafe</th><th>Einheit</th><th>Standard</th><th></th></tr></thead><tbody></tbody></table>
   </section>
 
-  <!-- Beiträge -->
-  <section id="tab-beitraege" class="card hide">
-    <div class="row">
-      <div><label>Spieler</label><select id="f_player"></select></div>
-      <div><label>Betrag (€)</label><input id="f_amount" type="number" inputmode="decimal" placeholder="z. B. 10.00"></div>
-    </div>
-    <div><label>Notiz</label><input id="f_note" placeholder="optional (z.B. Monatsbeitrag)"></div>
-    <div class="actions" style="margin-top:12px;">
-      <button class="primary" id="f_add">+ Beitrag buchen</button>
-      <button class="ghost" id="f_export">Export CSV</button>
-    </div>
-    <table class="table" id="f_table"><thead><tr><th>Datum</th><th>Spieler</th><th>Betrag</th><th>Notiz</th></tr></thead><tbody></tbody></table>
+  <!-- Gesamtübersicht -->
+  <section id="tab-gesamt" class="card hide">
+    <h3>Gesamt-Einnahmen</h3>
+    <table class="table" id="g_table"><thead><tr><th>Monat</th><th>Strafen</th><th>Beiträge</th><th>Gesamt</th></tr></thead><tbody></tbody></table>
+    <div class="row"><div>Gesamtsumme</div><div class="total" id="g_total">0,00 €</div></div>
   </section>
 
   <!-- Einstellungen -->
   <section id="tab-settings" class="card hide">
     <div class="actions">
-      <button class="ghost" id="backup">Backup (alles als JSON)</button>
-      <button class="ghost" id="restore">Wiederherstellen (JSON)</button>
+      <button class="ghost" id="backup">Backup (alles JSON)</button>
+      <button class="ghost" id="restore">Wiederherstellen</button>
     </div>
     <div class="actions" style="margin-top:12px;">
       <button class="ghost" id="reset">Alles löschen</button>
       <button class="primary" id="install">Zum Home‑Bildschirm</button>
     </div>
-    <p class="small">Design: hell, minimal, Akzentfarbe „Iceblue“. Daten bleiben lokal auf deinem iPhone (IndexedDB). Offlinefähig.</p>
+    <p class="small">Daten bleiben lokal (IndexedDB). Offlinefähig als PWA.</p>
   </section>
 </main>
-
 <div class="footer-space"></div>
-
 <script src="app.js"></script>
-<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
-</body>
-</html>
+<script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
+</body></html>

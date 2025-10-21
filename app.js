@@ -1,77 +1,80 @@
 
-const DB = {name:'mkasse-pro', ver:1};
-const stores = ['entries','fees','players','catalog'];
+// DB setup
+const DB = {name:'mkasse-v2', ver:2};
+const STORES = ['entries','fees','players','catalog','active','meta']; // active: {ym, player, active}
+// meta: {key:'activation_'+player, value: ym when first activated}
 let db;
 
-// initial data (from Excel)
-const PRESET_PLAYERS = ["Massi", "Nico Kessler", "Ajdin Cehadarevic", "Felix Thiele", "Gerrit Brüning", "Julian Berger", "Thorben Berger", "Vinzent Angerstein", "Tim Glettenberg", "Kai Fischersworring", "Damian Heine", "Nico Wünnenberg", "Mattis Birkel", "Marc Günther", "Maxi Plate", "Andre Ockenga", "Apo Bakas", "Corbi aus dem Siepen", "Marijan Hilgers", "Fabian Hilgers ", "Hamoud Alhuayet ", "Maurice Paul", "Maurice Hundenborn", "Nils Glettenberg", "Bastian Volk", "Daniel Parei", "Lars Rittermeier", "Jan Dörrenhaus", "Armin Ammersilge", "Rene Bien"];
-const PRESET_CATALOG = [{"name": "Sieg", "betrag": 5.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Gegentor", "betrag": 0.5, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": "€/Gegentor"}, {"name": "Gelbe Karte (Unsportlichkeit)", "betrag": 15.0, "einheit": "fix", "kontext": "Spiel", "kiste": "Nein", "hinweis": null}, {"name": "Gelb-rote Karte (Unsportlichkeit)", "betrag": 30.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Rote Karte", "betrag": 10.0, "einheit": "fix", "kontext": "Training", "kiste": "Nein", "hinweis": null}, {"name": "Rote Karte (Unsportlichkeit)", "betrag": 75.0, "einheit": "fix", "kontext": "Spiel", "kiste": "Ja", "hinweis": "75€ + 🍺"}, {"name": "Zu spät (Training)", "betrag": 0.5, "einheit": "pro Minute", "kontext": "Training", "kiste": "Nein", "hinweis": "€/Minute"}, {"name": "Zu spät (Spiel)", "betrag": 1.0, "einheit": "pro Minute", "kontext": "Spiel", "kiste": "Nein", "hinweis": "€/Minute"}, {"name": "Unentschuldigtes Fehlen (Training)", "betrag": 10.0, "einheit": "fix", "kontext": "Training", "kiste": "Nein", "hinweis": null}, {"name": "Unentschuldigtes Fehlen (Spiel)", "betrag": 75.0, "einheit": "fix", "kontext": "Spiel", "kiste": "Nein", "hinweis": null}, {"name": "Falscher Einwurf", "betrag": 3.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Ball über'n Zaun", "betrag": 1.5, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Wildpinkeln", "betrag": 5.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Toilettengang während Einheit", "betrag": 2.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Keine 20er", "betrag": 1.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "20er-Runde", "betrag": 1.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Beini", "betrag": 1.0, "einheit": "fix", "kontext": "Training", "kiste": "Nein", "hinweis": null}, {"name": "Vergessene Tasche", "betrag": 20.0, "einheit": "fix", "kontext": "Spiel", "kiste": "Nein", "hinweis": null}, {"name": "Vergessene Fußballschuhe", "betrag": 10.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Vergessene Laufschuhe", "betrag": 5.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Vergessene Schienbeinschoner", "betrag": 3.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Vergessenes sonstiges Teil", "betrag": 1.0, "einheit": "fix", "kontext": "Spiel", "kiste": "Nein", "hinweis": null}, {"name": "Ungeputzte Fußballschuhe", "betrag": 5.0, "einheit": "fix", "kontext": "Spiel", "kiste": "Nein", "hinweis": null}, {"name": "Trikot/Hose/Stutzen falsch in Trikottasche", "betrag": 3.0, "einheit": "fix", "kontext": "Spiel", "kiste": "Nein", "hinweis": null}, {"name": "Pinkeln in der Dusche", "betrag": 5.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Abhauen ohne Hand geben", "betrag": 3.0, "einheit": "fix", "kontext": "Spiel", "kiste": "Nein", "hinweis": null}, {"name": "Rauchen nach Treffpunkt", "betrag": 3.0, "einheit": "fix", "kontext": "Spiel", "kiste": "Nein", "hinweis": null}, {"name": "Rauchen im Trikot", "betrag": 3.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Trinken im Trikot", "betrag": 3.0, "einheit": "fix", "kontext": "Training", "kiste": "Nein", "hinweis": null}, {"name": "Bier Bunkern", "betrag": 3.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Angetrunken", "betrag": 3.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Handy klingelt/vibriert", "betrag": 3.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Bier verschüttet", "betrag": 2.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Mülleimer nicht getroffen", "betrag": 2.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Nicht duschen gehen", "betrag": 1.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Lichtfehler", "betrag": 1.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Falsche Gruppe", "betrag": 1.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}, {"name": "Beitrag", "betrag": 10.0, "einheit": "fix", "kontext": "Beides", "kiste": "Nein", "hinweis": null}];
+// initial data from Python
+const PRESET_PLAYERS = ["Massi", "Nico Kessler", "Ajdin Cehadarevic", "Felix Thiele", "Gerrit Brüning", "Julian Berger", "Thorben Berger", "Vinzent Angerstein", "Tim Glettenberg", "Kai Fischersworring", "Damit Heine", "Nico Wünnenberg", "Mattis Birkel", "Marc Günter", "Maxi Plate", "Andre Ockenga", "Apo Bakas", "Corbi aus den Siepen", "Marijan", "Fabi ", "Hamoud ", "Maurice Paul", "Maurice Hundenborn", "Nils Glettenberg"];
+const PRESET_CATALOG = [{"name": "Sieg", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Gegentor", "betrag": 0.5, "einheit": "fix", "hinweis": "€/Gegentor"}, {"name": "Gelbe Karte (Unsportlichkeit)", "betrag": 15.0, "einheit": "fix", "hinweis": null}, {"name": "Gelb-rote Karte (Unsportlichkeit)", "betrag": 30.0, "einheit": "fix", "hinweis": null}, {"name": "Rote Karte", "betrag": 10.0, "einheit": "fix", "hinweis": null}, {"name": "Rote Karte (Unsportlichkeit)", "betrag": 75.0, "einheit": "fix", "hinweis": "75€ + 🍺"}, {"name": "Zu spät (Training)", "betrag": 0.5, "einheit": "pro Minute", "hinweis": "€/Minute"}, {"name": "Zu spät (Spiel)", "betrag": 1.0, "einheit": "pro Minute", "hinweis": "€/Minute"}, {"name": "Unentschuldigtes Fehlen (Training)", "betrag": 10.0, "einheit": "fix", "hinweis": null}, {"name": "Unentschuldigtes Fehlen (Spiel)", "betrag": 75.0, "einheit": "fix", "hinweis": null}, {"name": "Falscher Einwurf", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Ball über'n Zaun", "betrag": 1.5, "einheit": "fix", "hinweis": null}, {"name": "Wildpinkeln", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Toilettengang während Einheit", "betrag": 2.0, "einheit": "fix", "hinweis": null}, {"name": "Keine 20er", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "20er-Runde", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Beini", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessene Tasche", "betrag": 20.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessene Fußballschuhe", "betrag": 10.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessene Laufschuhe", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessene Schienbeinschoner", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessenes sonstiges Teil", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Ungeputzte Fußballschuhe", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Trikot/Hose/Stutzen falsch in Trikottasche", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Pinkeln in der Dusche", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Abhauen ohne Hand geben", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Rauchen nach Treffpunkt", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Rauchen im Trikot", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Trinken im Trikot", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Bier Bunkern", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Angetrunken", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Handy klingelt/vibriert", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Bier verschüttet", "betrag": 2.0, "einheit": "fix", "hinweis": null}, {"name": "Mülleimer nicht getroffen", "betrag": 2.0, "einheit": "fix", "hinweis": null}, {"name": "Nicht duschen gehen", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Lichtfehler", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Falsche Gruppe", "betrag": 1.0, "einheit": "fix", "hinweis": null}];
 
-// helpers
-const € = (n)=> (n||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+// Helpers
+const EURO = (n)=> (n||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
 const ym = (d)=> { const t=new Date(d); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0'); };
+const ymFirstDayISO = (ymstr)=> { const [y,m]=ymstr.split('-').map(x=>parseInt(x,10)); return new Date(y, m-1, 1).toISOString(); };
 
 function openDB(){
   return new Promise((res,rej)=>{
     const req=indexedDB.open(DB.name, DB.ver);
     req.onupgradeneeded=()=>{
       const d=req.result;
-      stores.forEach(s=>{ if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id',autoIncrement:true}); });
+      STORES.forEach(s=>{ if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id',autoIncrement:true}); });
     };
     req.onsuccess=()=>res(req.result);
     req.onerror=()=>rej(req.error);
   });
 }
-function txGetAll(s){ return new Promise((res,rej)=>{ const t=db.transaction(s).objectStore(s).getAll(); t.onsuccess=()=>res(t.result||[]); t.onerror=()=>rej(t.error); }); }
-function txAdd(s, obj){ return new Promise((res,rej)=>{ const t=db.transaction(s,'readwrite').objectStore(s).add(obj); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
-function txPut(s, obj){ return new Promise((res,rej)=>{ const t=db.transaction(s,'readwrite').objectStore(s).put(obj); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
-function txDel(s, id){ return new Promise((res,rej)=>{ const t=db.transaction(s,'readwrite').objectStore(s).delete(id); t.onsuccess=()=>res(); t.onerror=()=>rej(t.error); }); }
-function txClear(s){ return new Promise((res,rej)=>{ const t=db.transaction(s,'readwrite').objectStore(s).clear(); t.onsuccess=()=>res(); t.onerror=()=>rej(t.error); }); }
+function getAll(s){ return new Promise((res,rej)=>{ const t=db.transaction(s).objectStore(s).getAll(); t.onsuccess=()=>res(t.result||[]); t.onerror=()=>rej(t.error); }); }
+function add(s,o){ return new Promise((res,rej)=>{ const t=db.transaction(s,'readwrite').objectStore(s).add(o); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
+function put(s,o){ return new Promise((res,rej)=>{ const t=db.transaction(s,'readwrite').objectStore(s).put(o); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
+function del(s,id){ return new Promise((res,rej)=>{ const t=db.transaction(s,'readwrite').objectStore(s).delete(id); t.onsuccess=()=>res(); t.onerror=()=>rej(t.error); }); }
+function clearStore(s){ return new Promise((res,rej)=>{ const t=db.transaction(s,'readwrite').objectStore(s).clear(); t.onsuccess=()=>res(); t.onerror=()=>rej(t.error); }); }
 
 async function ensureInitial(){
-  const pls = await txGetAll('players');
-  if(pls.length===0 && PRESET_PLAYERS.length){ for(const name of PRESET_PLAYERS) await txAdd('players',{name}); }
-  const cat = await txGetAll('catalog');
-  if(cat.length===0 && PRESET_CATALOG.length){
-    for(const p of PRESET_CATALOG){
-      await txAdd('catalog', {name:p.name, betrag:p.betrag||0, einheit:p.einheit||'', hinweis:p.hinweis||''});
-    }
+  const pls = await getAll('players'); if(pls.length===0 && PRESET_PLAYERS.length){ for(const name of PRESET_PLAYERS) await add('players',{name}); }
+  const cat = await getAll('catalog'); if(cat.length===0 && PRESET_CATALOG.length){
+    for(const p of PRESET_CATALOG){ await add('catalog',{name:p.name, betrag:p.betrag||0, einheit:p.einheit||'', hinweis:p.hinweis||''}); }
   }
 }
 
-// UI init
+// UI helpers
 function el(id){ return document.getElementById(id); }
 function fillSelect(sel, arr, map=(x=>x)){ sel.innerHTML=''; for(const v of arr){ const o=document.createElement('option'); const m=map(v); o.value=m; o.textContent=m; sel.appendChild(o);} }
 
+// Tabs
 function setTab(name){
   document.querySelectorAll('nav button').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
-  document.querySelectorAll('main section').forEach(s=> s.classList.toggle('hide', s.id!=='tab-'+name && s.id!=='b_stats' && s.id!=='tab-buchungen'));
-  if(name==='buchungen'){ refreshBookings(); }
-  if(name==='monate'){ refreshMonths(); }
-  if(name==='spieler'){ refreshPlayers(); }
-  if(name==='katalog'){ refreshCatalog(); }
-  if(name==='beitraege'){ refreshFees(); }
+  const ids=['buchungen','monate','aktiv','spieler','katalog','gesamt','settings'];
+  ids.forEach(i=> el('tab-'+i).classList.toggle('hide', i!==name));
+  if(name==='buchungen') refreshBookings();
+  if(name==='monate') refreshMonths();
+  if(name==='aktiv') refreshActive();
+  if(name==='spieler') refreshPlayers();
+  if(name==='katalog') refreshCatalog();
+  if(name==='gesamt') refreshOverall();
 }
 
+// Players
 async function refreshPlayers(){
-  const pls = await txGetAll('players');
+  const pls = await getAll('players');
   const names = pls.map(p=>p.name);
-  // selects
   fillSelect(el('b_player'), names);
   const f = el('b_filter_player'); f.innerHTML='<option value="">Alle</option>'; names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;f.appendChild(o);});
-  fillSelect(el('f_player'), names);
-  // table
+  fillSelect(el('f_player')||document.createElement('select'), names); // if fees tab removed, ignore
   const tbody=el('s_table').querySelector('tbody'); tbody.innerHTML='';
   pls.forEach(p=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${p.name}</td><td><button class="ghost" data-del="${p.id}">Löschen</button></td>`;
+    tr.innerHTML = `<td>${p.name}</td><td><button class="ghost" data-del="${p.id}">Löschen</button></td>`;
     tbody.appendChild(tr);
   });
-  tbody.querySelectorAll('button[data-del]').forEach(btn=> btn.onclick= async()=>{ await txDel('players', Number(btn.dataset.del)); refreshPlayers(); });
+  tbody.querySelectorAll('button[data-del]').forEach(btn=> btn.onclick= async()=>{ await del('players', Number(btn.dataset.del)); refreshPlayers(); refreshActive(); });
 }
+
+// Catalog
 async function refreshCatalog(){
-  const cat = await txGetAll('catalog');
-  // fill penalties select
+  const cat = await getAll('catalog');
+  // Fill penalties
   const sel = el('b_penalty'); sel.innerHTML='';
   cat.forEach(p=>{
     const o=document.createElement('option');
@@ -92,14 +95,14 @@ async function refreshCatalog(){
       <td><button class="ghost" data-del="${p.id}">Löschen</button></td>`;
     tbody.appendChild(tr);
   });
-  tbody.querySelectorAll('button[data-del]').forEach(btn=> btn.onclick= async()=>{ await txDel('catalog', Number(btn.dataset.del)); refreshCatalog(); });
+  tbody.querySelectorAll('button[data-del]').forEach(btn=> btn.onclick= async()=>{ await del('catalog', Number(btn.dataset.del)); refreshCatalog(); });
 }
+
+// Bookings
 async function refreshBookings(){
-  const entries = await txGetAll('entries');
+  const entries = await getAll('entries');
   const months=[...new Set(entries.map(e=> ym(e.date)))].sort().reverse();
-  // filters
   const monthSel=el('b_filter_month'); monthSel.innerHTML='<option value="">Alle</option>'; months.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; monthSel.appendChild(o); });
-  // table
   const fp=el('b_filter_player').value, fm=el('b_filter_month').value;
   const filtered = entries.filter(e=>(!fp || e.player===fp) && (!fm || ym(e.date)===fm));
   const tbody=el('b_table').querySelector('tbody'); tbody.innerHTML='';
@@ -111,36 +114,70 @@ async function refreshBookings(){
     tr.innerHTML = `<td>${new Date(e.date).toLocaleString('de-DE')}</td><td>${e.player}</td><td>${e.penalty}</td><td>${(e.amount||0).toFixed(2)}</td><td>${e.note||''}</td>`;
     tbody.appendChild(tr);
   });
-  el('b_total').textContent = €(total);
+  el('b_total').textContent = EURO(total);
 }
-async function refreshFees(){
-  const fees = await txGetAll('fees');
-  const tbody=el('f_table').querySelector('tbody'); tbody.innerHTML='';
-  fees.sort((a,b)=> new Date(b.date)-new Date(a.date));
-  fees.forEach(e=>{
+
+// Active per month
+function monthListAroundToday(){
+  const now=new Date(); const y=now.getFullYear(); const m=now.getMonth()+1;
+  const out=[]; for(let i=-6;i<=6;i++){ const d=new Date(y, m-1+i); out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
+  return out.reverse();
+}
+async function refreshActive(){
+  const pls = await getAll('players'); const names=pls.map(p=>p.name).sort();
+  const months = monthListAroundToday();
+  const sel=el('a_month'); sel.innerHTML=''; months.forEach(m=>{const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o);});
+  const cur = sel.value || months[Math.floor(months.length/2)]; if(!sel.value) sel.value=cur;
+  const act = await getAll('active'); const map={}; act.forEach(a=>{ map[a.ym+'|'+a.player]=a; });
+  const tbody=el('a_table').querySelector('tbody'); tbody.innerHTML='';
+  names.forEach(name=>{
+    const key=cur+'|'+name; const isActive = !!(map[key]?.active);
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${new Date(e.date).toLocaleString('de-DE')}</td><td>${e.player}</td><td>${(e.amount||0).toFixed(2)}</td><td>${e.note||''}</td>`;
+    tr.innerHTML = `<td><input type="checkbox" data-player="${name}" ${isActive?'checked':''}></td><td>${name}</td>`;
     tbody.appendChild(tr);
   });
+  // Bind change
+  tbody.querySelectorAll('input[type=checkbox]').forEach(ch=> ch.onchange= async()=>{
+    const player=ch.dataset.player; const ymv=el('a_month').value; const val=ch.checked;
+    // upsert active record
+    const existing = Object.values(map).find(a=> a.player===player && a.ym===ymv);
+    if(existing){ existing.active=val; await put('active', existing); }
+    else { await add('active',{ym:ymv, player, active:val}); }
+    // If first-time activation: add Startbeitrag 10€ as fine in that month
+    const meta = await getAll('meta');
+    const key = 'activation_'+player;
+    const was = meta.find(m=> m.key===key);
+    if(val && !was){
+      await add('entries', {player, penalty:'Startbeitrag', amount:10.00, note:'Einmalig bei erster Aktivierung', date: ymFirstDayISO(ymv)});
+      await add('meta', {key, value: ymv});
+      alert(player+': Startbeitrag 10€ im Monat '+ymv+' verbucht.');
+      refreshBookings(); refreshMonths(); refreshOverall();
+    }
+  });
 }
+
+// Months overview
 async function refreshMonths(){
-  const entries = await txGetAll('entries');
-  const fees = await txGetAll('fees');
-  const months = [...new Set([...entries.map(e=>ym(e.date)), ...fees.map(f=>ym(f.date))])].sort().reverse();
+  const entries = await getAll('entries');
+  const fees = await getAll('fees'); // kept for future use
+  const active = await getAll('active');
+  const months = [...new Set([...entries.map(e=>ym(e.date)), ...active.map(a=>a.ym)])].sort().reverse();
   const sel = el('m_month'); sel.innerHTML=''; months.forEach(m=>{const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o);});
   const current = sel.value || months[0]; if (!sel.value && months[0]) sel.value=months[0];
-  const fin = entries.filter(e=> ym(e.date)===current);
-  const fee = fees.filter(f=> ym(f.date)===current);
-  const sumFines = fin.reduce((s,e)=> s+Number(e.amount||0),0);
-  const sumFees = fee.reduce((s,e)=> s+Number(e.amount||0),0);
-  el('m_sum_fines').textContent = €(sumFines);
-  el('m_sum_fees').textContent = €(sumFees);
+
+  // Only include entries for players who are active in that month
+  const activePlayers = new Set(active.filter(a=> a.ym===current && a.active).map(a=> a.player));
+  const monthEntries = entries.filter(e=> ym(e.date)===current && activePlayers.has(e.player));
+  const sumFines = monthEntries.reduce((s,e)=> s+Number(e.amount||0),0);
+  const sumFees = fees.filter(f=> ym(f.date)===current).reduce((s,e)=> s+Number(e.amount||0),0);
   const include = el('m_include_fee').value!=='no';
-  el('m_total').textContent = €(include? (sumFines+sumFees): sumFines);
+  el('m_sum_fines').textContent = EURO(sumFines);
+  el('m_sum_fees').textContent = EURO(sumFees);
+  el('m_total').textContent = EURO(include? (sumFines+sumFees): sumFines);
   // per player
-  const map = {};
-  fin.forEach(e=>{ map[e.player] = map[e.player] || {fines:0, fees:0}; map[e.player].fines += Number(e.amount||0); });
-  fee.forEach(e=>{ map[e.player] = map[e.player] || {fines:0, fees:0}; map[e.player].fees += Number(e.amount||0); });
+  const map={};
+  monthEntries.forEach(e=>{ map[e.player]=map[e.player]||{fines:0,fees:0}; map[e.player].fines += Number(e.amount||0); });
+  fees.filter(f=> ym(f.date)===current).forEach(f=>{ map[f.player]=map[f.player]||{fines:0,fees:0}; map[f.player].fees += Number(f.amount||0); });
   const tbody=el('m_table').querySelector('tbody'); tbody.innerHTML='';
   Object.keys(map).sort().forEach(name=>{
     const fines = map[name].fines||0, feesv= map[name].fees||0, tot = include? (fines+feesv) : fines;
@@ -148,6 +185,23 @@ async function refreshMonths(){
     tr.innerHTML = `<td>${name}</td><td>${fines.toFixed(2)}</td><td>${feesv.toFixed(2)}</td><td>${tot.toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
+}
+
+// Overall
+async function refreshOverall(){
+  const entries = await getAll('entries');
+  const fees = await getAll('fees');
+  const months = [...new Set([...entries.map(e=>ym(e.date)), ...fees.map(f=>ym(f.date))])].sort();
+  const tbody=el('g_table').querySelector('tbody'); tbody.innerHTML='';
+  let grand=0;
+  months.forEach(m=>{
+    const sf = entries.filter(e=> ym(e.date)===m).reduce((s,e)=> s+Number(e.amount||0),0);
+    const fe = fees.filter(f=> ym(f.date)===m).reduce((s,e)=> s+Number(e.amount||0),0);
+    const tot = sf+fe; grand+=tot;
+    const tr=document.createElement('tr'); tr.innerHTML = `<td>${m}</td><td>${sf.toFixed(2)}</td><td>${fe.toFixed(2)}</td><td>${tot.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+  el('g_total').textContent = EURO(grand);
 }
 
 // Handlers
@@ -164,79 +218,81 @@ async function bindHandlers(){
     let amount = base;
     if(Number.isNaN(base)) { alert('Betrag fehlt.'); return; }
     if(unit.includes('minute')) amount = (Number.isNaN(mins)?0:mins) * base;
-    await txAdd('entries',{player, penalty:pen, amount: Math.round(amount*100)/100, note: el('b_note').value.trim(), date: new Date().toISOString()});
+    await add('entries',{player, penalty:pen, amount: Math.round(amount*100)/100, note: el('b_note').value.trim(), date: new Date().toISOString()});
     el('b_note').value=''; el('b_minutes').value='';
-    refreshBookings();
+    refreshBookings(); refreshMonths(); refreshOverall();
   };
-  el('b_export').onclick = async ()=>{
-    const items = await txGetAll('entries');
+  // Export month
+  el('b_export_month').onclick = async ()=>{
+    const m = el('b_filter_month').value || (()=>{const e=await getAll('entries'); return [...new Set(e.map(x=>ym(x.date)))].sort().pop(); })();
+    const entries = await getAll('entries');
+    const active = await getAll('active');
+    const activePlayers = new Set(active.filter(a=> a.ym===m && a.active).map(a=> a.player));
+    const rows = entries.filter(e=> ym(e.date)===m && activePlayers.has(e.player)).map(e=> [new Date(e.date).toISOString(), e.player, e.penalty, e.amount, (e.note||'').replaceAll('"','""')]);
     const head=['Datum','Spieler','Strafe','Betrag','Notiz'];
-    const rows = items.map(e=> [new Date(e.date).toISOString(), e.player, e.penalty, e.amount, (e.note||'').replaceAll('"','""')]);
-    const csv = [head.join(','), ...rows.map(r=> r.map(x=> (typeof x==='string' && x.includes(','))?`"${x}"`:x).join(','))].join('\n');
-    const blob = new Blob([csv],{type:'text/csv'}), url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='strafen.csv'; a.click(); URL.revokeObjectURL(url);
+    const csv=[head.join(','), ...rows.map(r=> r.map(x=> (typeof x==='string' && x.includes(','))?`"${x}"`:x).join(','))].join('\n');
+    const blob=new Blob([csv],{type:'text/csv'}), url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=(m||'monat')+'_strafen.csv'; a.click(); URL.revokeObjectURL(url);
   };
   // Filters update
   el('b_filter_player').onchange=refreshBookings; el('b_filter_month').onchange=refreshBookings;
   // Players add
-  el('s_add').onclick = async ()=>{ const n=el('s_new').value.trim(); if(!n) return; await txAdd('players',{name:n}); el('s_new').value=''; refreshPlayers(); refreshCatalog(); };
+  el('s_add').onclick = async ()=>{ const n=el('s_new').value.trim(); if(!n) return; await add('players',{name:n}); el('s_new').value=''; refreshPlayers(); refreshActive(); };
   // Catalog add
   el('k_add').onclick = async ()=>{
     const name = el('k_name').value.trim(); if(!name) return;
     const amount = parseFloat((el('k_amount').value||'0').replace(',','.'))||0;
     const unit = el('k_unit').value; const note = el('k_note').value.trim();
-    await txAdd('catalog', {name, betrag:amount, einheit:unit, hinweis:note});
+    await add('catalog', {name, betrag:amount, einheit:unit, hinweis:note});
     el('k_name').value=''; el('k_amount').value=''; el('k_note').value='';
     refreshCatalog();
   };
   el('k_export').onclick = async ()=>{
-    const cat = await txGetAll('catalog');
+    const cat = await getAll('catalog');
     const blob=new Blob([JSON.stringify(cat,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='strafenkatalog.json'; a.click(); URL.revokeObjectURL(url);
   };
-  // Fees
-  el('f_add').onclick = async ()=>{
-    const player=el('f_player').value;
-    const amount=parseFloat((el('f_amount').value||'').replace(',','.'));
-    if(Number.isNaN(amount)) { alert('Betrag fehlt.'); return; }
-    await txAdd('fees',{player, amount:Math.round(amount*100)/100, note:el('f_note').value.trim(), date:new Date().toISOString()});
-    el('f_note').value=''; el('f_amount').value='';
-    refreshFees();
-  };
-  el('f_export').onclick = async ()=>{
-    const items = await txGetAll('fees');
-    const head=['Datum','Spieler','Betrag','Notiz'];
-    const rows = items.map(e=> [new Date(e.date).toISOString(), e.player, e.amount, (e.note||'').replaceAll('"','""')]);
-    const csv=[head.join(','), ...rows.map(r=> r.map(x=> (typeof x==='string' && x.includes(','))?`"${x}"`:x).join(','))].join('\n');
-    const blob = new Blob([csv],{type:'text/csv'}), url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='beitraege.csv'; a.click(); URL.revokeObjectURL(url);
+  // Active section
+  el('a_month').onchange=refreshActive;
+  el('a_export').onclick = async ()=>{
+    const m = el('a_month').value;
+    const act = await getAll('active');
+    const rows = act.filter(a=>a.ym===m).map(a=> [a.ym, a.player, a.active?'1':'0']);
+    const head=['Monat','Spieler','Aktiv'];
+    const csv=[head.join(','), ...rows.map(r=> r.join(','))].join('\n');
+    const blob=new Blob([csv],{type:'text/csv'}), url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=(m||'monat')+'_aktiv.csv'; a.click(); URL.revokeObjectURL(url);
   };
   // Months
   el('m_month').onchange=refreshMonths; el('m_include_fee').onchange=refreshMonths;
-  // Settings: backup/restore/reset/install
+  // Settings
   el('backup').onclick = async ()=>{
     const data={
-      entries: await txGetAll('entries'),
-      fees: await txGetAll('fees'),
-      players: await txGetAll('players'),
-      catalog: await txGetAll('catalog'),
+      entries: await getAll('entries'),
+      fees: await getAll('fees'),
+      players: await getAll('players'),
+      catalog: await getAll('catalog'),
+      active: await getAll('active'),
+      meta: await getAll('meta'),
     };
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='backup_mkasse.json'; a.click(); URL.revokeObjectURL(url);
+    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='backup_mkasse_v2.json'; a.click(); URL.revokeObjectURL(url);
   };
   el('restore').onclick = ()=>{
     const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
     inp.onchange=async()=>{ const txt= await inp.files[0].text(); const data=JSON.parse(txt);
-      for(const s of stores) await txClear(s);
-      for(const it of (data.players||[])) await txAdd('players',{name:it.name});
-      for(const it of (data.catalog||[])) await txAdd('catalog',it);
-      for(const it of (data.entries||[])) await txAdd('entries',it);
-      for(const it of (data.fees||[])) await txAdd('fees',it);
-      await refreshPlayers(); await refreshCatalog(); await refreshBookings(); await refreshFees(); await refreshMonths();
+      for(const s of STORES) await clearStore(s);
+      for(const it of (data.players||[])) await add('players',it);
+      for(const it of (data.catalog||[])) await add('catalog',it);
+      for(const it of (data.entries||[])) await add('entries',it);
+      for(const it of (data.fees||[])) await add('fees',it);
+      for(const it of (data.active||[])) await add('active',it);
+      for(const it of (data.meta||[])) await add('meta',it);
+      await refreshPlayers(); await refreshCatalog(); await refreshBookings(); await refreshActive(); await refreshMonths(); await refreshOverall();
       alert('Backup wiederhergestellt.');
     };
     inp.click();
   };
-  el('reset').onclick = async ()=>{ if(confirm('Wirklich ALLES löschen?')){ for(const s of stores) await txClear(s); await ensureInitial(); refreshPlayers(); refreshCatalog(); refreshBookings(); refreshFees(); refreshMonths(); } };
-  el('install').onclick = ()=> alert('Öffne diese Seite in Safari → Teilen → „Zum Home-Bildschirm“. Dann läuft alles wie eine App – auch offline.');
+  el('reset').onclick = async ()=>{ if(confirm('Wirklich ALLES löschen?')){ for(const s of STORES) await clearStore(s); await ensureInitial(); await refreshPlayers(); await refreshCatalog(); await refreshBookings(); await refreshActive(); await refreshMonths(); await refreshOverall(); } };
+  const installBtn = document.getElementById('install'); if(installBtn) installBtn.onclick = ()=> alert('In Safari: Teilen → "Zum Home‑Bildschirm".');
 }
 
 window.addEventListener('DOMContentLoaded', async()=>{
@@ -245,8 +301,9 @@ window.addEventListener('DOMContentLoaded', async()=>{
   await refreshPlayers();
   await refreshCatalog();
   await refreshBookings();
-  await refreshFees();
+  await refreshActive();
   await refreshMonths();
+  await refreshOverall();
   await bindHandlers();
   setTab('buchungen');
 });
