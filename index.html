@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="styles.css">
+<title>Mannschaftskasse – Strafen</title>
+</head>
+<body>
+<header>
+  <img src="assets/logo_iceblue.png" alt="Logo">
+  <h1>Mannschaftskasse</h1>
+</header>
+
+<nav id="tabs">
+  <button data-tab="buchungen" class="active">Buchungen</button>
+  <button data-tab="monate">Monate</button>
+  <button data-tab="spieler">Spieler</button>
+  <button data-tab="katalog">Strafenkatalog</button>
+  <button data-tab="beitraege">Beiträge</button>
+  <button data-tab="settings">Einstellungen</button>
+</nav>
+
+<main>
+  <!-- Buchungen -->
+  <section id="tab-buchungen" class="card">
+    <div class="row">
+      <div><label>Spieler</label><select id="b_player"></select></div>
+      <div><label>Strafe</label><select id="b_penalty"></select></div>
+    </div>
+    <div class="row">
+      <div><label>Betrag (€)</label><input id="b_amount" type="number" inputmode="decimal" placeholder="0.00"></div>
+      <div id="b_minutes_wrap" class="hide"><label>Minuten</label><input id="b_minutes" type="number" inputmode="numeric"></div>
+    </div>
+    <div><label>Notiz</label><input id="b_note" placeholder="optional"></div>
+    <div class="actions" style="margin-top:12px;">
+      <button class="primary" id="b_add">+ Hinzufügen</button>
+      <button class="ghost" id="b_export">Export CSV</button>
+    </div>
+  </section>
+
+  <section class="card" id="b_stats">
+    <div class="stat"><div>Gesamt (gefiltert)</div><div class="total" id="b_total">0,00 €</div></div>
+    <div class="row">
+      <div><label>Spieler-Filter</label><select id="b_filter_player"><option value="">Alle</option></select></div>
+      <div><label>Monat</label><select id="b_filter_month"><option value="">Alle</option></select></div>
+    </div>
+    <table class="table" id="b_table"><thead>
+      <tr><th>Datum</th><th>Spieler</th><th>Strafe</th><th>Betrag</th><th>Notiz</th></tr>
+    </thead><tbody></tbody></table>
+  </section>
+
+  <!-- Monate -->
+  <section id="tab-monate" class="card hide">
+    <div class="row">
+      <div><label>Monat</label><select id="m_month"></select></div>
+      <div><label>Beiträge einrechnen?</label>
+        <select id="m_include_fee"><option value="yes">Ja</option><option value="no">Nein</option></select>
+      </div>
+    </div>
+    <div class="stat" style="margin-top:8px;"><div>Summe Strafen</div><div class="total" id="m_sum_fines">0,00 €</div></div>
+    <div class="stat"><div>Summe Beiträge (optional)</div><div class="total" id="m_sum_fees">0,00 €</div></div>
+    <div class="stat"><div><strong>Gesamt</strong></div><div class="total" id="m_total">0,00 €</div></div>
+    <h3>Pro Spieler</h3>
+    <table class="table" id="m_table"><thead><tr><th>Spieler</th><th>Strafen</th><th>Beiträge</th><th>Gesamt</th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <!-- Spieler -->
+  <section id="tab-spieler" class="card hide">
+    <div class="row">
+      <div><label>Neuer Spieler</label><input id="s_new" placeholder="Name"></div>
+      <div><label>&nbsp;</label><button class="primary" id="s_add">+ Hinzufügen</button></div>
+    </div>
+    <table class="table" id="s_table"><thead><tr><th>Spieler</th><th></th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <!-- Strafenkatalog -->
+  <section id="tab-katalog" class="card hide">
+    <div class="row">
+      <div><label>Name</label><input id="k_name" placeholder="z.B. Zuspätkommen"></div>
+      <div><label>Betrag (€) oder Satz</label><input id="k_amount" type="number" inputmode="decimal" placeholder="z.B. 5 oder 0.5"></div>
+    </div>
+    <div class="row">
+      <div><label>Einheit</label>
+        <select id="k_unit">
+          <option value="">Fixbetrag</option>
+          <option value="pro Minute">pro Minute</option>
+          <option value="pro Stück">pro Stück</option>
+        </select>
+      </div>
+      <div><label>Hinweis/Kontext</label><input id="k_note" placeholder="optional (Spiel/Training)"></div>
+    </div>
+    <div class="actions" style="margin-top:12px;">
+      <button class="primary" id="k_add">Speichern / hinzufügen</button>
+      <button class="ghost" id="k_export">Export JSON</button>
+    </div>
+    <table class="table" id="k_table"><thead><tr><th>Strafe</th><th>Einheit</th><th>Standard</th><th></th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <!-- Beiträge -->
+  <section id="tab-beitraege" class="card hide">
+    <div class="row">
+      <div><label>Spieler</label><select id="f_player"></select></div>
+      <div><label>Betrag (€)</label><input id="f_amount" type="number" inputmode="decimal" placeholder="z. B. 10.00"></div>
+    </div>
+    <div><label>Notiz</label><input id="f_note" placeholder="optional (z.B. Monatsbeitrag)"></div>
+    <div class="actions" style="margin-top:12px;">
+      <button class="primary" id="f_add">+ Beitrag buchen</button>
+      <button class="ghost" id="f_export">Export CSV</button>
+    </div>
+    <table class="table" id="f_table"><thead><tr><th>Datum</th><th>Spieler</th><th>Betrag</th><th>Notiz</th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <!-- Einstellungen -->
+  <section id="tab-settings" class="card hide">
+    <div class="actions">
+      <button class="ghost" id="backup">Backup (alles als JSON)</button>
+      <button class="ghost" id="restore">Wiederherstellen (JSON)</button>
+    </div>
+    <div class="actions" style="margin-top:12px;">
+      <button class="ghost" id="reset">Alles löschen</button>
+      <button class="primary" id="install">Zum Home‑Bildschirm</button>
+    </div>
+    <p class="small">Design: hell, minimal, Akzentfarbe „Iceblue“. Daten bleiben lokal auf deinem iPhone (IndexedDB). Offlinefähig.</p>
+  </section>
+</main>
+
+<div class="footer-space"></div>
+
+<script src="app.js"></script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>

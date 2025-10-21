@@ -1,0 +1,20 @@
+{
+  "name": "Mannschaftskasse – Strafen",
+  "short_name": "StrafenPro",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8CC8E6",
+  "icons": [
+    {
+      "src": "assets/logo_iceblue.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/logo_iceblue.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
