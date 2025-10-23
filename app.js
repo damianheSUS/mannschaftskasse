@@ -4,6 +4,7 @@ const DB = {name:'mkasse-v2', ver:2};
 const STORES = ['entries','fees','players','catalog','active','meta']; // active: {ym, player, active}
 // meta: {key:'activation_'+player, value: ym when first activated}
 let db;
+let editingEntry = null;
 
 // initial data from Python
 const PRESET_PLAYERS = ["Massi", "Nico Kessler", "Ajdin Cehadarevic", "Felix Thiele", "Gerrit Brüning", "Julian Berger", "Thorben Berger", "Vinzent Angerstein", "Tim Glettenberg", "Kai Fischersworring", "Damit Heine", "Nico Wünnenberg", "Mattis Birkel", "Marc Günter", "Maxi Plate", "Andre Ockenga", "Apo Bakas", "Corbi aus den Siepen", "Marijan", "Fabi ", "Hamoud ", "Maurice Paul", "Maurice Hundenborn", "Nils Glettenberg"];
@@ -41,6 +42,64 @@ async function ensureInitial(){
 // UI helpers
 function el(id){ return document.getElementById(id); }
 function fillSelect(sel, arr, map=(x=>x)){ sel.innerHTML=''; for(const v of arr){ const o=document.createElement('option'); const m=map(v); o.value=m; o.textContent=m; sel.appendChild(o);} }
+
+function ensureSelectOption(select, value){
+  if(!select || value===undefined || value===null) return;
+  const exists = Array.from(select.options).some(o=> o.value===value);
+  if(!exists){
+    const opt=document.createElement('option');
+    opt.value=value;
+    opt.textContent=value;
+    select.appendChild(opt);
+  }
+}
+
+function resetBookingForm(){
+  editingEntry = null;
+  const addBtn = el('b_add');
+  if(addBtn) addBtn.textContent = '+ Hinzufügen';
+  const cancelBtn = el('b_cancel');
+  if(cancelBtn) cancelBtn.classList.add('hide');
+  const note = el('b_note'); if(note) note.value='';
+  const minutes = el('b_minutes'); if(minutes) minutes.value='';
+  const sel = el('b_penalty');
+  if(sel){
+    // trigger default amount + visibility update based on current option
+    sel.dispatchEvent(new Event('change'));
+  }
+}
+
+function startEditEntry(entry){
+  if(!entry) return;
+  editingEntry = {...entry};
+  const playerSel = el('b_player');
+  ensureSelectOption(playerSel, entry.player);
+  if(playerSel) playerSel.value = entry.player;
+  const penaltySel = el('b_penalty');
+  ensureSelectOption(penaltySel, entry.penalty);
+  if(penaltySel) penaltySel.value = entry.penalty;
+  const amountField = el('b_amount');
+  if(amountField) amountField.value = Number(entry.amount||0).toFixed(2);
+  const note = el('b_note'); if(note) note.value = entry.note||'';
+  const minutes = el('b_minutes'); if(minutes) minutes.value='';
+  const addBtn = el('b_add'); if(addBtn) addBtn.textContent='Speichern';
+  const cancelBtn = el('b_cancel'); if(cancelBtn) cancelBtn.classList.remove('hide');
+  const opt = penaltySel?.selectedOptions?.[0];
+  const unit=(opt?.dataset.unit||'').toLowerCase();
+  el('b_minutes_wrap').classList.toggle('hide', !unit.includes('minute'));
+  if(unit.includes('minute') && opt?.dataset.amount){
+    const base=parseFloat(opt.dataset.amount);
+    const currentAmount=Number(entry.amount||0);
+    if(base>0){
+      const minutesValue = currentAmount / base;
+      if(Number.isFinite(minutesValue)){
+        const rounded = Math.round(minutesValue*100)/100;
+        if(minutes) minutes.value = Number.isInteger(rounded) ? String(Math.trunc(rounded)) : rounded.toString();
+      }
+    }
+  }
+  if(amountField) amountField.focus();
+}
 
 // Tabs
 function setTab(name){
@@ -102,7 +161,11 @@ async function refreshCatalog(){
 async function refreshBookings(){
   const entries = await getAll('entries');
   const months=[...new Set(entries.map(e=> ym(e.date)))].sort().reverse();
-  const monthSel=el('b_filter_month'); monthSel.innerHTML='<option value="">Alle</option>'; months.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; monthSel.appendChild(o); });
+  const monthSel=el('b_filter_month');
+  const prevMonth = monthSel.value;
+  monthSel.innerHTML='<option value="">Alle</option>';
+  months.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; monthSel.appendChild(o); });
+  if(prevMonth){ monthSel.value=prevMonth; if(monthSel.value!==prevMonth) monthSel.value=''; }
   const fp=el('b_filter_player').value, fm=el('b_filter_month').value;
   const filtered = entries.filter(e=>(!fp || e.player===fp) && (!fm || ym(e.date)===fm));
   const tbody=el('b_table').querySelector('tbody'); tbody.innerHTML='';
@@ -111,8 +174,18 @@ async function refreshBookings(){
   filtered.forEach(e=>{
     total += Number(e.amount||0);
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${new Date(e.date).toLocaleString('de-DE')}</td><td>${e.player}</td><td>${e.penalty}</td><td>${(e.amount||0).toFixed(2)}</td><td>${e.note||''}</td>`;
+    tr.innerHTML = `<td>${new Date(e.date).toLocaleString('de-DE')}</td><td>${e.player}</td><td>${e.penalty}</td><td>${(e.amount||0).toFixed(2)}</td><td>${e.note||''}</td>
+      <td><div class="table-actions"><button class="ghost" data-edit="${e.id}">Bearbeiten</button><button class="ghost danger" data-del="${e.id}">Löschen</button></div></td>`;
     tbody.appendChild(tr);
+    const editBtn = tr.querySelector('button[data-edit]');
+    if(editBtn) editBtn.onclick = ()=> startEditEntry(e);
+    const delBtn = tr.querySelector('button[data-del]');
+    if(delBtn) delBtn.onclick = async ()=>{
+      if(!confirm('Eintrag wirklich löschen?')) return;
+      await del('entries', Number(e.id));
+      if(editingEntry && editingEntry.id===e.id) resetBookingForm();
+      refreshBookings(); refreshMonths(); refreshOverall();
+    };
   });
   el('b_total').textContent = EURO(total);
 }
@@ -213,15 +286,26 @@ async function bindHandlers(){
     const player=el('b_player').value, pen=el('b_penalty').value;
     const opt = el('b_penalty').selectedOptions[0];
     const unit=(opt?.dataset.unit||'').toLowerCase();
-    const base=parseFloat((el('b_amount').value||'').replace(',','.'));
-    const mins=parseFloat((el('b_minutes').value||'0').replace(',','.'));
+    const amountInput = el('b_amount').value||'';
+    const base=parseFloat(amountInput.replace(',','.'));
+    const minutesRaw = (el('b_minutes').value||'').trim();
+    const mins=minutesRaw? parseFloat(minutesRaw.replace(',','.')): NaN;
     let amount = base;
     if(Number.isNaN(base)) { alert('Betrag fehlt.'); return; }
-    if(unit.includes('minute')) amount = (Number.isNaN(mins)?0:mins) * base;
-    await add('entries',{player, penalty:pen, amount: Math.round(amount*100)/100, note: el('b_note').value.trim(), date: new Date().toISOString()});
-    el('b_note').value=''; el('b_minutes').value='';
+    if(unit.includes('minute') && minutesRaw){ amount = (Number.isNaN(mins)?0:mins) * base; }
+    const payload = {player, penalty:pen, amount: Math.round(amount*100)/100, note: el('b_note').value.trim()};
+    if(editingEntry){
+      payload.id = editingEntry.id;
+      payload.date = editingEntry.date;
+      await put('entries', {...editingEntry, ...payload});
+    } else {
+      payload.date = new Date().toISOString();
+      await add('entries', payload);
+    }
+    resetBookingForm();
     refreshBookings(); refreshMonths(); refreshOverall();
   };
+  const cancel = el('b_cancel'); if(cancel) cancel.onclick = ()=> resetBookingForm();
   // Export month
   el('b_export_month').onclick = async ()=>{
     const m = el('b_filter_month').value || (()=>{const e=await getAll('entries'); return [...new Set(e.map(x=>ym(x.date)))].sort().pop(); })();

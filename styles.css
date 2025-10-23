@@ -14,7 +14,11 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
 input,select,textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:16px}
 .row{display:grid;gap:12px;grid-template-columns:1fr 1fr} .row3{display:grid;gap:12px;grid-template-columns:1fr 1fr 1fr}
 .actions{display:grid;gap:12px;grid-template-columns:1fr 1fr} .primary{background:var(--accent);color:#fff;border:0;padding:12px 16px;border-radius:12px;font-weight:700}
-.ghost{background:#f0f4f8;border:0;padding:12px 16px;border-radius:12px;font-weight:700} .table{width:100%;border-collapse:collapse}
+.ghost{background:#f0f4f8;border:0;padding:12px 16px;border-radius:12px;font-weight:700}
+.ghost.danger{background:#fde8e8;color:#b91c1c}
+.table-actions{display:flex;gap:8px;flex-wrap:wrap}
+.table-actions .ghost{padding:8px 12px;font-size:12px}
+.table{width:100%;border-collapse:collapse}
 .table th,.table td{border-bottom:1px solid var(--line);padding:10px;text-align:left;font-size:14px}
 .switch{display:flex;align-items:center;gap:8px} .total{font-weight:800} .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef6fb;color:#084e6b;font-size:12px}
 .small{font-size:12px;color:var(--muted)}

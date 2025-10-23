@@ -20,7 +20,11 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
 input,select,textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:16px}
 .row{display:grid;gap:12px;grid-template-columns:1fr 1fr} .row3{display:grid;gap:12px;grid-template-columns:1fr 1fr 1fr}
 .actions{display:grid;gap:12px;grid-template-columns:1fr 1fr} .primary{background:var(--accent);color:#fff;border:0;padding:12px 16px;border-radius:12px;font-weight:700}
-.ghost{background:#f0f4f8;border:0;padding:12px 16px;border-radius:12px;font-weight:700} .table{width:100%;border-collapse:collapse}
+.ghost{background:#f0f4f8;border:0;padding:12px 16px;border-radius:12px;font-weight:700}
+.ghost.danger{background:#fde8e8;color:#b91c1c}
+.table-actions{display:flex;gap:8px;flex-wrap:wrap}
+.table-actions .ghost{padding:8px 12px;font-size:12px}
+.table{width:100%;border-collapse:collapse}
 .table th,.table td{border-bottom:1px solid var(--line);padding:10px;text-align:left;font-size:14px}
 .hide{display:none} .small{font-size:12px;color:var(--muted)} .total{font-weight:800}
 </style>
@@ -49,6 +53,7 @@ input,select,textarea{width:100%;padding:12px 14px;border:1px solid var(--line);
     <div><label>Notiz</label><input id="b_note" placeholder="optional"></div>
     <div class="actions" style="margin-top:12px;">
       <button class="primary" id="b_add">+ Hinzufügen</button>
+      <button class="ghost hide" id="b_cancel">Abbrechen</button>
     </div>
   </section>
 
@@ -57,7 +62,7 @@ input,select,textarea{width:100%;padding:12px 14px;border:1px solid var(--line);
       <div><label>Spieler-Filter</label><select id="b_filter_player"><option value="">Alle</option></select></div>
       <div><label>Monat</label><select id="b_filter_month"><option value="">Alle</option></select></div>
     </div>
-    <table class="table" id="b_table"><thead><tr><th>Datum</th><th>Spieler</th><th>Strafe</th><th>Betrag</th><th>Notiz</th></tr></thead><tbody></tbody></table>
+    <table class="table" id="b_table"><thead><tr><th>Datum</th><th>Spieler</th><th>Strafe</th><th>Betrag</th><th>Notiz</th><th>Aktionen</th></tr></thead><tbody></tbody></table>
     <div class="row"><div>Gesamt (gefiltert)</div><div class="total" id="b_total">0,00 €</div></div>
   </section>
 
@@ -140,12 +145,68 @@ function ymFirstDayISO(ymstr){ var parts=ymstr.split('-'); var y=parseInt(parts[
 function el(id){ return document.getElementById(id); }
 function fillSelect(sel, arr){ sel.innerHTML=''; for(var i=0;i<arr.length;i++){ var o=document.createElement('option'); o.value=arr[i]; o.textContent=arr[i]; sel.appendChild(o);} }
 
+function ensureSelectOption(select, value){
+  if(!select || value===undefined || value===null) return;
+  var options=[].slice.call(select.options||[]);
+  var exists=options.some(function(opt){ return opt.value===value; });
+  if(!exists){
+    var o=document.createElement('option'); o.value=value; o.textContent=value; select.appendChild(o);
+  }
+}
+
+function resetBookingForm(){
+  editingEntry = null;
+  var addBtn=el('b_add'); if(addBtn) addBtn.textContent='+ Hinzufügen';
+  var cancelBtn=el('b_cancel'); if(cancelBtn) cancelBtn.classList.add('hide');
+  var note=el('b_note'); if(note) note.value='';
+  var minutes=el('b_minutes'); if(minutes) minutes.value='';
+  var sel=el('b_penalty');
+  if(sel){
+    try{ sel.dispatchEvent(new Event('change')); }
+    catch(e){ var evt=document.createEvent('Event'); evt.initEvent('change', true, true); sel.dispatchEvent(evt); }
+  }
+}
+
+function cloneEntry(entry){
+  var copy={};
+  for(var k in entry){ if(Object.prototype.hasOwnProperty.call(entry,k)){ copy[k]=entry[k]; } }
+  return copy;
+}
+
+function startEditEntry(entry){
+  if(!entry) return;
+  editingEntry = cloneEntry(entry);
+  var playerSel=el('b_player'); ensureSelectOption(playerSel, entry.player); if(playerSel) playerSel.value=entry.player;
+  var penaltySel=el('b_penalty'); ensureSelectOption(penaltySel, entry.penalty); if(penaltySel) penaltySel.value=entry.penalty;
+  var amountField=el('b_amount'); if(amountField) amountField.value=Number(entry.amount||0).toFixed(2);
+  var noteField=el('b_note'); if(noteField) noteField.value=entry.note||'';
+  var minutesField=el('b_minutes'); if(minutesField) minutesField.value='';
+  var addBtn=el('b_add'); if(addBtn) addBtn.textContent='Speichern';
+  var cancelBtn=el('b_cancel'); if(cancelBtn) cancelBtn.classList.remove('hide');
+  var opt = penaltySel && penaltySel.options && penaltySel.options[penaltySel.selectedIndex];
+  var unit = ((opt && opt.getAttribute('data-unit'))||'').toLowerCase();
+  el('b_minutes_wrap').classList.toggle('hide', unit.indexOf('minute')===-1);
+  if(unit.indexOf('minute')>-1 && opt && opt.getAttribute('data-amount')){
+    var base=parseFloat(opt.getAttribute('data-amount'));
+    var currentAmount=Number(entry.amount||0);
+    if(base>0){
+      var minutesValue=currentAmount/base;
+      if(isFinite(minutesValue) && minutesField){
+        var rounded=Math.round(minutesValue*100)/100;
+        minutesField.value = (rounded%1===0)? String(Math.round(rounded)): String(rounded);
+      }
+    }
+  }
+  if(amountField) amountField.focus();
+}
+
 // Data preset injected by Python
 var PRESET_PLAYERS = ["Massi", "Nico Kessler", "Ajdin Cehadarevic", "Felix Thiele", "Gerrit Brüning", "Julian Berger", "Thorben Berger", "Vinzent Angerstein", "Tim Glettenberg", "Kai Fischersworring", "Damit Heine", "Nico Wünnenberg", "Mattis Birkel", "Marc Günter", "Maxi Plate", "Andre Ockenga", "Apo Bakas", "Corbi aus den Siepen", "Marijan", "Fabi ", "Hamoud ", "Maurice Paul", "Maurice Hundenborn", "Nils Glettenberg"];
 var PRESET_CATALOG = [{"name": "Sieg", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Gegentor", "betrag": 0.5, "einheit": "fix", "hinweis": "€/Gegentor"}, {"name": "Gelbe Karte (Unsportlichkeit)", "betrag": 15.0, "einheit": "fix", "hinweis": null}, {"name": "Gelb-rote Karte (Unsportlichkeit)", "betrag": 30.0, "einheit": "fix", "hinweis": null}, {"name": "Rote Karte", "betrag": 10.0, "einheit": "fix", "hinweis": null}, {"name": "Rote Karte (Unsportlichkeit)", "betrag": 75.0, "einheit": "fix", "hinweis": "75€ + 🍺"}, {"name": "Zu spät (Training)", "betrag": 0.5, "einheit": "pro Minute", "hinweis": "€/Minute"}, {"name": "Zu spät (Spiel)", "betrag": 1.0, "einheit": "pro Minute", "hinweis": "€/Minute"}, {"name": "Unentschuldigtes Fehlen (Training)", "betrag": 10.0, "einheit": "fix", "hinweis": null}, {"name": "Unentschuldigtes Fehlen (Spiel)", "betrag": 75.0, "einheit": "fix", "hinweis": null}, {"name": "Falscher Einwurf", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Ball über'n Zaun", "betrag": 1.5, "einheit": "fix", "hinweis": null}, {"name": "Wildpinkeln", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Toilettengang während Einheit", "betrag": 2.0, "einheit": "fix", "hinweis": null}, {"name": "Keine 20er", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "20er-Runde", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Beini", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessene Tasche", "betrag": 20.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessene Fußballschuhe", "betrag": 10.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessene Laufschuhe", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessene Schienbeinschoner", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Vergessenes sonstiges Teil", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Ungeputzte Fußballschuhe", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Trikot/Hose/Stutzen falsch in Trikottasche", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Pinkeln in der Dusche", "betrag": 5.0, "einheit": "fix", "hinweis": null}, {"name": "Abhauen ohne Hand geben", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Rauchen nach Treffpunkt", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Rauchen im Trikot", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Trinken im Trikot", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Bier Bunkern", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Angetrunken", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Handy klingelt/vibriert", "betrag": 3.0, "einheit": "fix", "hinweis": null}, {"name": "Bier verschüttet", "betrag": 2.0, "einheit": "fix", "hinweis": null}, {"name": "Mülleimer nicht getroffen", "betrag": 2.0, "einheit": "fix", "hinweis": null}, {"name": "Nicht duschen gehen", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Lichtfehler", "betrag": 1.0, "einheit": "fix", "hinweis": null}, {"name": "Falsche Gruppe", "betrag": 1.0, "einheit": "fix", "hinweis": null}];
 
 // Storage (IndexedDB with localStorage fallback)
 var DBNAME='mkasse-iossafe', DBVER=1, db=null, useLocal=false;
+var editingEntry=null;
 
 function openDB(cb){
   if(!window.indexedDB){ useLocal=true; return cb(); }
@@ -274,9 +335,13 @@ function refreshCatalog(){
 function refreshBookings(){
   getAll('entries', function(entries){
     var months = entries.map(function(e){ return ym(e.date); }).filter(function(v,i,a){ return a.indexOf(v)===i; }).sort().reverse();
-    var monthSel=el('b_filter_month'); monthSel.innerHTML='<option value="">Alle</option>';
+    var monthSel=el('b_filter_month');
+    var prevMonth=monthSel.value;
+    monthSel.innerHTML='<option value="">Alle</option>';
     months.forEach(function(m){ var o=document.createElement('option'); o.value=m; o.textContent=m; monthSel.appendChild(o); });
-    var fp=el('b_filter_player').value, fm=el('b_filter_month').value;
+    if(prevMonth){ monthSel.value=prevMonth; if(monthSel.value!==prevMonth) monthSel.value=''; }
+    var fp=el('b_filter_player').value;
+    var fm=monthSel.value;
     var filtered = entries.filter(function(e){ return (!fp || e.player===fp) && (!fm || ym(e.date)===fm); });
     filtered.sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
     var tbody=el('b_table').querySelector('tbody'); tbody.innerHTML='';
@@ -284,8 +349,19 @@ function refreshBookings(){
     filtered.forEach(function(e){
       total += Number(e.amount||0);
       var tr=document.createElement('tr');
-      tr.innerHTML = '<td>'+new Date(e.date).toLocaleString('de-DE')+'</td><td>'+e.player+'</td><td>'+e.penalty+'</td><td>'+((e.amount||0).toFixed(2))+'</td><td>'+(e.note||'')+'</td>';
+      tr.innerHTML = '<td>'+new Date(e.date).toLocaleString('de-DE')+'</td><td>'+e.player+'</td><td>'+e.penalty+'</td><td>'+((e.amount||0).toFixed(2))+'</td><td>'+(e.note||'')+'</td>'+
+        '<td><div class="table-actions"><button class="ghost" data-edit="'+e.id+'">Bearbeiten</button><button class="ghost danger" data-del="'+e.id+'">Löschen</button></div></td>';
       tbody.appendChild(tr);
+      var editBtn=tr.querySelector('button[data-edit]');
+      if(editBtn){ editBtn.onclick=function(){ startEditEntry(e); }; }
+      var delBtn=tr.querySelector('button[data-del]');
+      if(delBtn){ delBtn.onclick=function(){
+        if(!confirm('Eintrag wirklich löschen?')) return;
+        delItem('entries', Number(e.id), function(){
+          if(editingEntry && editingEntry.id===e.id) resetBookingForm();
+          refreshBookings(); refreshMonths(); refreshOverall();
+        });
+      }; }
     });
     el('b_total').textContent = EURO(total);
   });
@@ -395,19 +471,34 @@ function refreshOverall(){
 function bindHandlers(){
   [].slice.call(document.querySelectorAll('nav button')).forEach(function(b){ b.onclick=function(){ setTab(b.getAttribute('data-tab')); }; });
   el('b_add').onclick = function(){
-    var player=el('b_player').value, sel=el('b_penalty'), pen=sel.value;
+    var player=el('b_player').value;
+    var sel=el('b_penalty'); var pen=sel.value;
     var opt=sel.options[sel.selectedIndex];
-    var unit=(opt.getAttribute('data-unit')||'').toLowerCase();
-    var base=parseFloat((el('b_amount').value||'').replace(',','.'));
-    var mins=parseFloat((el('b_minutes').value||'0').replace(',','.'));
+    var unit=(opt && opt.getAttribute('data-unit')||'').toLowerCase();
+    var amountInput=(el('b_amount').value||'');
+    var base=parseFloat(amountInput.replace(',','.'));
+    var minutesRaw=(el('b_minutes').value||'').trim();
+    var mins=minutesRaw? parseFloat(minutesRaw.replace(',','.')): NaN;
     if(isNaN(base)){ alert('Betrag fehlt.'); return; }
     var amount = base;
-    if(unit.indexOf('minute')>-1){ amount = (isNaN(mins)?0:mins) * base; }
-    add('entries',{player:player, penalty:pen, amount: Math.round(amount*100)/100, note: el('b_note').value.trim(), date: new Date().toISOString()}, function(){
-      el('b_note').value=''; el('b_minutes').value='';
-      refreshBookings(); refreshMonths(); refreshOverall();
-    });
+    if(unit.indexOf('minute')>-1 && minutesRaw){ amount = (isNaN(mins)?0:mins) * base; }
+    var payload={player:player, penalty:pen, amount: Math.round(amount*100)/100, note: el('b_note').value.trim()};
+    if(editingEntry){
+      payload.id=editingEntry.id;
+      payload.date=editingEntry.date;
+      put('entries', payload, function(){
+        resetBookingForm();
+        refreshBookings(); refreshMonths(); refreshOverall();
+      });
+    } else {
+      payload.date=new Date().toISOString();
+      add('entries', payload, function(){
+        resetBookingForm();
+        refreshBookings(); refreshMonths(); refreshOverall();
+      });
+    }
   };
+  el('b_cancel').onclick = function(){ resetBookingForm(); };
   el('b_filter_player').onchange=refreshBookings; el('b_filter_month').onchange=refreshBookings;
   el('s_add').onclick = function(){ var n=el('s_new').value.trim(); if(!n) return; add('players',{name:n}, function(){ el('s_new').value=''; refreshPlayers(); refreshActive(); }); };
   el('k_add').onclick = function(){
